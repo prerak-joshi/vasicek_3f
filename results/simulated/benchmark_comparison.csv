@@ -1,0 +1,2 @@
+,n_months,start,end,corr_level,corr_12m_change,mean_model_pct,mean_bench_pct,mean_diff_bp,rmse_diff_bp
+True TP (simulation),480,1986-01-31,2025-12-31,0.9991413749514666,0.9981706626976711,0.5628435501019802,0.454499104087185,10.834444601479515,17.44996593147936

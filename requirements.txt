@@ -1,0 +1,11 @@
+# Runtime dependencies (installed by Streamlit Community Cloud).
+# Notebook, test and development tools are in requirements-dev.txt.
+numpy>=1.26
+scipy>=1.11
+pandas>=2.2
+matplotlib>=3.8
+streamlit>=1.40
+plotly>=5.20
+tabulate>=0.9
+xlrd>=2.0
+openpyxl>=3.1

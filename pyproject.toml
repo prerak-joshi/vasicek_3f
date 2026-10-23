@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vasicek3f"
+version = "1.0.0"
+description = "3-factor Gaussian Vasicek term structure model: Kalman-filter MLE and term premium decomposition (educational)"
+requires-python = ">=3.11"
+dependencies = ["numpy>=1.24", "scipy>=1.10", "pandas>=2.0", "matplotlib>=3.7", "tabulate>=0.9"]
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.30", "plotly>=5.18"]
+notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel"]
+data = ["xlrd>=2.0", "openpyxl>=3.1"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+vasicek3f = "vasicek3f.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
