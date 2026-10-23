@@ -84,6 +84,16 @@ Steps:
 4. Under **Advanced settings**, pick Python **3.12** (3.11 also works). No secrets are needed.
 5. Deploy. Replace the `YOUR-APP-NAME` / `YOUR-GITHUB-USERNAME` placeholders in the badges above with your app URL and username.
 
+### Secrets management
+
+This app does not currently require credentials or other secrets. For a private GitHub
+repository, authorize Streamlit Community Cloud to access the repository through its
+GitHub integration; do not put a GitHub token in the app's secrets. If a future feature
+needs a credential, add it in the app's **Settings → Secrets** in Community Cloud and
+read it with `st.secrets` in the app. For local development, use
+`.streamlit/secrets.toml`; that file is excluded from Git, so never force-add it or paste
+secret values into source code, README files, or logs.
+
 How the cloud version behaves:
 
 - **Opens on the saved simulated run.** If the pickled demo can't be read with the library versions Streamlit installs, the app automatically runs a fresh fast-mode demo estimation instead (about 10–20 s, once, then cached for all visitors).
