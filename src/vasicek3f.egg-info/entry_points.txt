@@ -1,0 +1,2 @@
+[console_scripts]
+vasicek3f = vasicek3f.cli:main

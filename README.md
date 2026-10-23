@@ -35,6 +35,7 @@ The physical-measure affine yield is the yield the model would produce if bonds 
 ```bash
 git clone https://github.com/YOUR-GITHUB-USERNAME/vasicek3f.git && cd vasicek3f
 pip install -r requirements-dev.txt      # runtime + tests + notebook (requirements.txt = runtime only)
+pip install -e .                         # install the src-layout package for CLI/module commands
 
 pytest -q                                # 20 tests, ~15s
 
