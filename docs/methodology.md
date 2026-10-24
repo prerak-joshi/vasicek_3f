@@ -101,6 +101,18 @@ Filter recursions: predict $x_{t|t-1}=c+Fx_{t-1|t-1}$, $P_{t|t-1}=FP_{t-1|t-1}F'
 
 **Standard errors:** inverse of the numerical Hessian in the unconstrained space, mapped to natural parameters with the delta method. They are approximate; inspect the Hessian's positive-definiteness flag in `params.json`.
 
+## 7a. Restrictions used on real data
+
+Three degenerate solutions appear on US Treasury data that do not appear in simulation, and the pipeline applies the standard remedies automatically for real data (`--source gsw`); simulations are estimated unrestricted.
+
+| Problem on real data | Remedy (default for real data) | Flag |
+|---|---|---|
+| Some maturities are priced almost exactly and their measurement-error variance collapses to zero, inflating the likelihood | one common measurement-error s.d. for all maturities (as in Duffee 2002, JSZ 2011) | `--common-error / --no-common-error` |
+| The slowest Q factor drifts to $\kappa^Q_1\to 0$, making $\delta_0 = r^Q_\infty$ unidentified (estimates of 40%+) | floor $\kappa^Q_1 \ge 0.02$ (Q half-life ≤ ~35 years), built into the parameter transform | `--kappa-min` |
+| The P dynamics find a unit root in the level factor (half-life of centuries), making $\theta^P$ and the term-premium level meaningless | smooth penalty when the slowest real eigenvalue of $K^P$ falls below 0.02 | `--kp-min` |
+
+When a floor binds (the estimate sits on it), report it as such: the data alone cannot pin that parameter down, and the term-premium level is conditional on the restriction. Changes in the term premium are much less sensitive to these choices than its level.
+
 ## 8. Identification lessons
 
 - The cross-section identifies $\kappa^Q$, $\delta_0$ and (through convexity and the factor dynamics) $\Sigma$ precisely.

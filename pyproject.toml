@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vasicek3f"
-version = "1.1.0"
+version = "1.2.0"
 description = "3-factor Gaussian Vasicek term structure model: Kalman-filter MLE, term premium decomposition, bias-corrected P dynamics and a Streamlit dashboard"
 readme = "README.md"
 license = { text = "MIT" }

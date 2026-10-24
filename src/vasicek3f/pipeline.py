@@ -54,7 +54,10 @@ class RunConfig:
     maxiter: int = 4000
     polish: bool = True
     ftol: float = 1e-14
-    common_measurement_error: bool = False
+    # None = automatic: common error, kappa_min = kp_min = 0.02 for real data; unrestricted for simulation
+    common_measurement_error: Optional[bool] = None
+    kappa_min: Optional[float] = None
+    kp_min: Optional[float] = None
     sim_periods: int = 480
     seed: int = 42
     out_dir: str = "results/simulated"
@@ -68,9 +71,16 @@ class RunConfig:
     oos_refit_every: int = 12
 
     def effective(self) -> RunConfig:
-        if not self.fast:
-            return self
         c = RunConfig(**asdict(self))
+        real = c.source != "simulated"
+        if c.common_measurement_error is None:
+            c.common_measurement_error = real
+        if c.kappa_min is None:
+            c.kappa_min = 0.02 if real else 0.0
+        if c.kp_min is None:
+            c.kp_min = 0.02 if real else 0.0
+        if not self.fast:
+            return c
         c.compute_se = False
         c.maxiter = min(self.maxiter, 400)
         c.n_restarts = 1
@@ -129,6 +139,8 @@ def run(cfg: RunConfig) -> dict[str, object]:
         n_restarts=cfg.n_restarts,
         seed=cfg.seed,
         compute_se=cfg.compute_se,
+        kappa_min=cfg.kappa_min,
+        kp_min=cfg.kp_min,
         polish=cfg.polish,
         ftol=cfg.ftol,
         verbose=cfg.verbose,
@@ -184,7 +196,15 @@ def run(cfg: RunConfig) -> dict[str, object]:
         if cfg.verbose:
             print("Out-of-sample forecast evaluation (expanding window) ...")
         oos = expanding_window_oos(
-            y, tau, cfg.dt, refit_every=cfg.oos_refit_every, start=est.start_params, verbose=cfg.verbose
+            y,
+            tau,
+            cfg.dt,
+            refit_every=cfg.oos_refit_every,
+            start=est.start_params,
+            verbose=cfg.verbose,
+            common_measurement_error=cfg.common_measurement_error,
+            kappa_min=cfg.kappa_min,
+            kp_min=cfg.kp_min,
         )
 
     bundle = {

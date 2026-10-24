@@ -4,6 +4,19 @@ All notable changes are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [semantic versioning](https://semver.org/).
 
+## [1.2.0] — 2026-10-24
+
+### Added
+- **US Treasury results** (GSW 1990–2026, with ACM and Kim-Wright benchmarks) published in `results/gsw/`
+  and shown by default in the dashboard.
+- Standard restrictions for real data, applied automatically for `--source gsw`: common measurement error,
+  floor on Q mean reversion (`--kappa-min`), soft floor on P mean reversion (`--kp-min`). See
+  Methodology §7a.
+
+### Changed
+- Starting values keep κᵠ₁ ≥ 0.02 and successive κᵠ at least 1.5× apart, which avoids degenerate
+  cross-sectional fits on real data.
+
 ## [1.1.0] — 2026-10-24
 
 ### Added

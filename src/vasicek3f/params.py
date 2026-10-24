@@ -135,7 +135,8 @@ class ParamTransform:
 
     Layout of u:
         [0:3]   log-increments of ordered kappa_Q:
-                kappa_1 = exp(u0), kappa_2 = kappa_1 + exp(u1), kappa_3 = kappa_2 + exp(u2)
+                kappa_1 = kappa_min + exp(u0), kappa_2 = kappa_1 + exp(u1), kappa_3 = kappa_2 + exp(u2)
+                (kappa_min >= 0 is an optional floor on Q mean reversion, default 0)
         [3]     100 * delta0
         [4:10]  lower triangle of Sigma (row-major tril order), diagonal entries in logs,
                 everything scaled by 100
@@ -146,6 +147,7 @@ class ParamTransform:
 
     n_maturities: int
     common_measurement_error: bool = False
+    kappa_min: float = 0.0
     names: list[str] = field(init=False)
 
     def __post_init__(self) -> None:
@@ -167,7 +169,7 @@ class ParamTransform:
     def to_params(self, u: np.ndarray) -> VasicekParams:
         u = np.asarray(u, dtype=float)
         inc = np.exp(np.clip(u[0:3], -12.0, 4.0))
-        kappa_Q = np.cumsum(inc)
+        kappa_Q = self.kappa_min + np.cumsum(inc)
         delta0 = u[3] / _LEVEL_SCALE
 
         tril_vals = u[4:10].copy() / _LEVEL_SCALE
@@ -188,7 +190,7 @@ class ParamTransform:
         if not np.all(np.diff(k) > 0) or k[0] <= 0:
             raise ValueError("kappa_Q must be positive and strictly increasing for identification")
         u = np.empty(self.size)
-        u[0] = np.log(k[0])
+        u[0] = np.log(max(k[0] - self.kappa_min, 1e-6))
         u[1] = np.log(k[1] - k[0])
         u[2] = np.log(k[2] - k[1])
         u[3] = p.delta0 * _LEVEL_SCALE

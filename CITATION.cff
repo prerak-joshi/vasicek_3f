@@ -4,7 +4,7 @@ title: "vasicek3f: a three-factor Gaussian Vasicek term structure model with Kal
 authors:
   - family-names: Joshi
     given-names: Prerak
-version: 1.1.0
+version: 1.2.0
 date-released: 2026-10-24
 license: MIT
 repository-code: "https://github.com/prerak-joshi/vasicek_3f"

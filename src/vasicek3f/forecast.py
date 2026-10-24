@@ -81,6 +81,7 @@ def expanding_window_oos(
     horizons: Sequence[int] = (1, 6, 12),
     start: Optional[VasicekParams] = None,
     verbose: bool = True,
+    **estimate_kwargs,
 ) -> dict[str, pd.DataFrame]:
     """
     Expanding-window pseudo out-of-sample forecast evaluation.
@@ -113,6 +114,7 @@ def expanding_window_oos(
                 ftol=1e-9,
                 maxiter=300 if params is not None else 400,
                 verbose=False,
+                **estimate_kwargs,
             )
             params = res.params
             ss = build_state_space(params, tau, dt)

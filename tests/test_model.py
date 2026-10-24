@@ -147,3 +147,23 @@ def test_market_price_of_risk_identity(p):
     m = p.market_price_of_risk()
     assert np.allclose(p.Sigma @ m["lambda1"], p.K_Q - p.K_P)
     assert np.allclose(p.Sigma @ m["lambda0"], p.K_P @ p.theta_P)
+
+
+def test_transform_kappa_floor(p):
+    tr = ParamTransform(TAU.size, common_measurement_error=True, kappa_min=0.02)
+    u = tr.to_unconstrained(p)
+    q = tr.to_params(u)
+    assert np.allclose(q.kappa_Q, p.kappa_Q)
+    assert np.allclose(q.sigma_e, np.mean(p.sigma_e))
+    u[0] = -50.0  # pushing kappa_1 towards zero stops at the floor
+    assert tr.to_params(u).kappa_Q[0] >= 0.02
+
+
+def test_kp_min_penalty_only_when_binding(p, y):
+    from vasicek3f.estimation import make_objective
+
+    tr = ParamTransform(TAU.size)
+    u = tr.to_unconstrained(p)
+    base = make_objective(y, TAU, DT, tr)(u)
+    assert make_objective(y, TAU, DT, tr, kp_min=0.1)(u) == base  # slowest P rate 0.2 > 0.1
+    assert make_objective(y, TAU, DT, tr, kp_min=0.5)(u) > base

@@ -37,7 +37,16 @@ def main(argv=None) -> None:
     r.add_argument("--restarts", type=int, default=1)
     r.add_argument("--maxiter", type=int, default=4000)
     r.add_argument(
-        "--common-error", action="store_true", help="one measurement error s.d. for all maturities"
+        "--common-error",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="one measurement error s.d. for all maturities (default: on for real data, off for simulation)",
+    )
+    r.add_argument(
+        "--kappa-min", type=float, default=None, help="floor on Q mean reversion (default 0.02 real data)"
+    )
+    r.add_argument(
+        "--kp-min", type=float, default=None, help="soft floor on P mean reversion (default 0.02 real data)"
     )
     r.add_argument("--sim-periods", type=int, default=480)
     r.add_argument("--seed", type=int, default=42)
@@ -69,6 +78,8 @@ def main(argv=None) -> None:
         n_restarts=a.restarts,
         maxiter=a.maxiter,
         common_measurement_error=a.common_error,
+        kappa_min=a.kappa_min,
+        kp_min=a.kp_min,
         sim_periods=a.sim_periods,
         seed=a.seed,
         out_dir=a.out or f"results/{a.source}",

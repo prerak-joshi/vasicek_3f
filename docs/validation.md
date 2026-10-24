@@ -36,3 +36,19 @@ The pattern — excellent fit and tracking, a biased level, too-fast estimated m
 ## Continuous integration
 
 GitHub Actions runs on every push and pull request: ruff lint and format checks, the test suite on Python 3.11, 3.12 and 3.13 with coverage, and a headless smoke test of the dashboard.
+
+## US Treasury results (GSW, Jan 1990 – Oct 2026)
+
+Estimated with the real-data restrictions in [Methodology §7a](methodology.md#7a-restrictions-used-on-real-data).
+
+| Result | Outcome |
+|---|---|
+| Pricing errors | 0.7–2.9bp RMSE by maturity (common σₑ = 2.1bp) |
+| 10y term premium | mean 1.13%, range −1.8% to 4.6%, Oct 2026: 0.63% |
+| vs ACM (441 months) | correlation 0.995 in levels, 0.97 in 12-month changes; mean gap +7bp |
+| Bias-corrected P | 10y term premium mean 1.65%, Oct 2026: 0.96% |
+| 90% parameter band | average width ≈350bp — the level is genuinely uncertain |
+| κᵠ₁ | at its floor of 0.02 (the restriction binds) |
+| Out of sample vs random walk | RMSE ratio ≈1.0–1.08: no improvement, the usual finding for affine models on post-2008 data |
+
+The model reproduces the *shape and timing* of the published ACM term premium very closely; its *level* depends on the weakly identified P dynamics, as the band and the MLE-vs-bias-corrected gap show.

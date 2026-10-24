@@ -8,7 +8,7 @@ from .model import build_state_space, filter_and_smooth, loglik
 from .params import ParamTransform, VasicekParams
 from .simulate import default_true_params, simulate_panel
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 __all__ = [
     "ParamTransform",

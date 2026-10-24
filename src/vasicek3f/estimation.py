@@ -35,10 +35,13 @@ from .discretize import diffusion_from_discrete_cov
 from .model import loglik
 from .params import N_FACTORS, ParamTransform, VasicekParams
 
-
 # ---------------------------------------------------------------------------
 # Stage 1: cross-sectional fit
 # ---------------------------------------------------------------------------
+KAPPA_MIN = 0.02  # lower bound on kappa_1 for starting values (half-life <= ~35 years)
+KAPPA_RATIO = 1.5  # minimum ratio between successive kappas for starting values
+
+
 @dataclass
 class CrossSectionFit:
     kappa_Q: np.ndarray
@@ -73,11 +76,28 @@ def fit_kappa(
 ) -> CrossSectionFit:
     """Search over ordered kappa_Q minimising cross-sectional SSE (multi-start Nelder-Mead)."""
     if starts is None:
-        starts = [(0.03, 0.4, 1.5), (0.08, 0.7, 2.5), (0.15, 1.0, 4.0), (0.01, 0.25, 0.9)]
+        starts = [(0.04, 0.4, 1.5), (0.08, 0.7, 2.5), (0.15, 1.0, 4.0), (0.03, 0.25, 0.9)]
     prior = float(np.mean(y[:, -1]))
 
+    # On real data the cross-section alone barely separates a near-unit-root level factor
+    # (kappa_1 -> 0) from delta0, and two factors can collapse onto the same kappa. Starting
+    # values therefore keep kappa_1 >= KAPPA_MIN and successive kappas at least RATIO apart;
+    # the subsequent MLE is unrestricted apart from the ordering.
     def unpack(v):
-        return np.cumsum(np.exp(np.clip(v, -10, 3)))
+        v = np.clip(v, -10, 3)
+        k1 = KAPPA_MIN + np.exp(v[0])
+        k2 = k1 * (KAPPA_RATIO + np.exp(v[1]))
+        k3 = k2 * (KAPPA_RATIO + np.exp(v[2]))
+        return np.array([k1, k2, k3])
+
+    def pack(k):
+        return np.log(
+            [
+                max(k[0] - KAPPA_MIN, 1e-4),
+                max(k[1] / k[0] - KAPPA_RATIO, 1e-4),
+                max(k[2] / k[1] - KAPPA_RATIO, 1e-4),
+            ]
+        )
 
     def obj(v):
         try:
@@ -87,8 +107,7 @@ def fit_kappa(
 
     best = None
     for s in starts:
-        s = np.asarray(s, float)
-        v0 = np.log(np.concatenate([[s[0]], np.diff(s)]))
+        v0 = pack(np.asarray(s, float))
         r = minimize(obj, v0, method="Nelder-Mead", options={"xatol": 1e-7, "fatol": 1e-14, "maxiter": 4000})
         if best is None or r.fun < best.fun:
             best = r
@@ -169,15 +188,29 @@ class EstimationResult:
 
 
 def make_objective(
-    y: np.ndarray, tau: np.ndarray, dt: float, tr: ParamTransform
+    y: np.ndarray, tau: np.ndarray, dt: float, tr: ParamTransform, kp_min: float = 0.0
 ) -> Callable[[np.ndarray], float]:
+    """
+    Mean negative log-likelihood per observation in the unconstrained space.
+
+    ``kp_min`` > 0 adds a smooth penalty when the slowest P mean-reversion rate (smallest
+    real part of the eigenvalues of K_P) falls below ``kp_min``. On real data the MLE
+    otherwise tends to a unit root in the level factor, which makes the long-run P mean,
+    and therefore the level of the term premium, meaningless.
+    """
     n_obs = int(np.sum(~np.isnan(y)))
 
     def obj(u: np.ndarray) -> float:
-        ll = loglik(tr.to_params(u), y, tau, dt)
+        p = tr.to_params(u)
+        ll = loglik(p, y, tau, dt)
         if not np.isfinite(ll):
             return 1e3
-        return -ll / n_obs
+        pen = 0.0
+        if kp_min > 0:
+            gap = kp_min - float(np.min(np.real(np.linalg.eigvals(p.K_P))))
+            if gap > 0:
+                pen = 1e4 * (gap / kp_min) ** 2
+        return (-ll + pen) / n_obs
 
     return obj
 
@@ -192,6 +225,8 @@ def estimate(
     n_restarts: int = 1,
     seed: int = 0,
     compute_se: bool = True,
+    kappa_min: float = 0.0,
+    kp_min: float = 0.0,
     polish: bool = True,
     ftol: float = 1e-14,
     verbose: bool = True,
@@ -205,19 +240,24 @@ def estimate(
     tau : (N,) maturities in years
     dt  : sampling interval in years (1/12 for monthly)
     n_restarts : extra randomly perturbed starts (best likelihood is kept)
+    kappa_min  : floor on the slowest Q mean-reversion rate (0 = unrestricted)
+    kp_min     : soft floor on the slowest P mean-reversion rate (0 = unrestricted)
     polish     : follow L-BFGS-B with a BFGS polish step (off in fast mode)
     ftol       : L-BFGS-B relative function tolerance (looser in fast mode)
     """
     t0 = time.time()
     tau = np.asarray(tau, float)
-    tr = ParamTransform(tau.size, common_measurement_error)
+    tr = ParamTransform(tau.size, common_measurement_error, kappa_min=kappa_min)
     if start is None:
         if verbose:
             print("Stage 1-2: cross-sectional fit + VAR starting values")
         start = starting_values(y, tau, dt, verbose=verbose)
-    obj = make_objective(y, tau, dt, tr)
+    obj = make_objective(y, tau, dt, tr, kp_min=kp_min)
     n_obs = int(np.sum(~np.isnan(y)))
 
+    if start.kappa_Q[0] < 1.25 * kappa_min:  # move the start off the floor
+        start = start.copy()
+        start.kappa_Q = start.kappa_Q + (1.25 * kappa_min - start.kappa_Q[0])
     u0 = tr.to_unconstrained(start)
     rng = np.random.default_rng(seed)
     starts = [u0] + [u0 + rng.normal(scale=0.15, size=u0.size) for _ in range(n_restarts - 1)]
