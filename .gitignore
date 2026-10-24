@@ -1,1 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Environments and editors
+.venv/
+venv/
+.DS_Store
+.ipynb_checkpoints/
+
+# Secrets
 .streamlit/secrets.toml
+
+# Data files (download locally; check provider terms before committing)
+data/*.csv
+data/*.xls*
+
+# Results: only the published runs are versioned
+results/*/
+!results/simulated/
+!results/gsw/
+
+# Docs build
+site/
+wiki/

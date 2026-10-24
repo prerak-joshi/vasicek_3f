@@ -1,0 +1,84 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Dashboard (Streamlit)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": [
+        "run",
+        "streamlit_app.py"
+      ],
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      "name": "Pipeline: simulated data",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "vasicek3f",
+      "args": [
+        "run",
+        "--source",
+        "simulated",
+        "--oos",
+        "--out",
+        "results/simulated"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Pipeline: GSW data (needs files in data/)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "vasicek3f",
+      "args": [
+        "run",
+        "--source",
+        "gsw",
+        "--gsw",
+        "data/feds200628.csv",
+        "--acm",
+        "data/ACMTermPremium.xls",
+        "--kw",
+        "data/THREEFYTP10.csv",
+        "--start",
+        "1990-01",
+        "--oos",
+        "--out",
+        "results/gsw"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Tests (pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "-q"
+      ],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Docs (mkdocs serve)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "mkdocs",
+      "args": [
+        "serve"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "NO_MKDOCS_2_WARNING": "1"
+      }
+    }
+  ]
+}
