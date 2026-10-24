@@ -1,14 +1,15 @@
 """
 Simulate a yield panel from known parameters (for testing and parameter recovery).
 """
+
 from __future__ import annotations
 
-from typing import Dict, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
 
-from .affine import q_loadings, p_loadings
+from .affine import p_loadings, q_loadings
 from .discretize import discretize_ou, unconditional_moments
 from .params import VasicekParams
 
@@ -24,20 +25,21 @@ def default_true_params(n_maturities: int = 10) -> VasicekParams:
     return VasicekParams(
         kappa_Q=[0.06, 0.45, 1.40],
         delta0=0.060,
-        Sigma=[[0.0080, 0.0, 0.0],
-               [-0.0080, 0.0150, 0.0],
-               [0.0030, -0.0100, 0.0140]],
-        K_P=[[0.20, 0.00, 0.00],
-             [0.15, 0.70, 0.00],
-             [0.00, 0.30, 1.50]],
+        Sigma=[[0.0080, 0.0, 0.0], [-0.0080, 0.0150, 0.0], [0.0030, -0.0100, 0.0140]],
+        K_P=[[0.20, 0.00, 0.00], [0.15, 0.70, 0.00], [0.00, 0.30, 1.50]],
         theta_P=[-0.020, 0.000, 0.000],
         sigma_e=np.full(n_maturities, 0.0004),
     )
 
 
-def simulate_panel(params: VasicekParams, maturities: Sequence[float], n_periods: int,
-                   dt: float = 1 / 12, seed: int = 42,
-                   start: str = "1986-01-31") -> Dict[str, pd.DataFrame]:
+def simulate_panel(
+    params: VasicekParams,
+    maturities: Sequence[float],
+    n_periods: int,
+    dt: float = 1 / 12,
+    seed: int = 42,
+    start: str = "1986-01-31",
+) -> dict[str, pd.DataFrame]:
     """Simulate states from the exact P transition and yields from Q pricing + noise."""
     rng = np.random.default_rng(seed)
     tau = np.asarray(maturities, float)

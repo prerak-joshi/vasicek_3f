@@ -1,5 +1,11 @@
 -r requirements.txt
 pytest>=7
+pytest-cov>=4
+ruff>=0.6
+pre-commit>=3
+mkdocs>=1.6,<2
+mkdocs-material>=9.5
+mkdocstrings[python]>=0.24
 jupyter
 nbformat
 nbconvert

@@ -8,7 +8,7 @@
     "success": true,
     "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
     "n_iter": 129,
-    "elapsed_sec": 25.769298553466797,
+    "elapsed_sec": 23.374840259552002,
     "history": [
       28455.511657884374
     ],
@@ -141,7 +141,13 @@
     "seed": 42,
     "out_dir": "results/simulated",
     "make_plots": true,
-    "verbose": true
+    "verbose": true,
+    "bias_correct": true,
+    "n_boot": 500,
+    "bands": true,
+    "n_band_draws": 200,
+    "oos": true,
+    "oos_refit_every": 12
   },
-  "runtime_sec": 25.873246908187866
+  "runtime_sec": 113.06549572944641
 }

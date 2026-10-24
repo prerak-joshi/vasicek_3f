@@ -4,16 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vasicek3f"
-version = "1.0.0"
-description = "3-factor Gaussian Vasicek term structure model: Kalman-filter MLE and term premium decomposition (educational)"
+version = "1.1.0"
+description = "3-factor Gaussian Vasicek term structure model: Kalman-filter MLE, term premium decomposition, bias-corrected P dynamics and a Streamlit dashboard"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Prerak Joshi" }]
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.24", "scipy>=1.10", "pandas>=2.0", "matplotlib>=3.7", "tabulate>=0.9"]
+keywords = ["term structure", "affine model", "Vasicek", "Kalman filter", "term premium", "fixed income"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = ["numpy>=1.26", "scipy>=1.11", "pandas>=2.2", "matplotlib>=3.8", "tabulate>=0.9"]
 
 [project.optional-dependencies]
-dashboard = ["streamlit>=1.30", "plotly>=5.18"]
-notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel"]
+dashboard = ["streamlit>=1.40", "plotly>=5.20"]
 data = ["xlrd>=2.0", "openpyxl>=3.1"]
-dev = ["pytest>=7"]
+notebook = ["jupyter", "nbformat", "nbconvert", "ipykernel"]
+docs = ["mkdocs>=1.6,<2", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.24"]
+dev = ["pytest>=7", "pytest-cov>=4", "ruff>=0.6", "pre-commit>=3"]
+
+[project.urls]
+Homepage = "https://github.com/prerak-joshi/vasicek_3f"
+Documentation = "https://prerak-joshi.github.io/vasicek_3f/"
+Dashboard = "https://vasicek3f-5ygmrt2fr8rvg97zfofzlq.streamlit.app"
+Issues = "https://github.com/prerak-joshi/vasicek_3f/issues"
 
 [project.scripts]
 vasicek3f = "vasicek3f.cli:main"
@@ -24,3 +42,24 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["vasicek3f"]
+omit = ["*/cli.py", "*/__main__.py", "*/plotting.py"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["notebooks/*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "NPY", "SIM"]
+ignore = ["E501", "E741", "B905", "SIM108", "UP007", "UP045"]
+
+[tool.ruff.lint.per-file-ignores]
+"dashboard/app.py" = ["E402"]
+"tests/*" = ["B018"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["vasicek3f", "context", "theme", "views"]

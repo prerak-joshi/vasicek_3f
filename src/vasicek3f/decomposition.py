@@ -20,14 +20,13 @@ Because both y^Q and y^P are affine in the same state, the term premium is itsel
 affine:  TP_t = (a_Q - a_P) + (b_Q - b_P)' x_t, so its loadings show which latent
 factors drive variation in the premium.
 """
-from __future__ import annotations
 
-from typing import Dict
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-from .affine import q_loadings, p_loadings, eh_loadings, model_yields
+from .affine import eh_loadings, model_yields, p_loadings, q_loadings
 from .params import VasicekParams
 
 
@@ -40,13 +39,13 @@ def loadings_table(params: VasicekParams, maturities: np.ndarray) -> pd.DataFram
     for lab, a, b in (("Q", aQ, bQ), ("P", aP, bP), ("EH", aE, bE), ("TP", aQ - aP, bQ - bP)):
         rows[f"a_{lab}"] = a
         for i in range(3):
-            rows[f"b{i+1}_{lab}"] = b[:, i]
+            rows[f"b{i + 1}_{lab}"] = b[:, i]
     return pd.DataFrame(rows, index=pd.Index(maturities, name="maturity"))
 
 
-def term_premium_decomposition(params: VasicekParams, states: np.ndarray,
-                               maturities: np.ndarray, index: pd.Index
-                               ) -> Dict[str, pd.DataFrame]:
+def term_premium_decomposition(
+    params: VasicekParams, states: np.ndarray, maturities: np.ndarray, index: pd.Index
+) -> dict[str, pd.DataFrame]:
     """
     Returns DataFrames (T x N, columns = maturities, decimals):
         fitted_Q        pricing-measure fitted yield
@@ -72,15 +71,18 @@ def term_premium_decomposition(params: VasicekParams, states: np.ndarray,
     }
 
 
-def decomposition_at(dec: Dict[str, pd.DataFrame], maturity: float,
-                     observed: pd.DataFrame | None = None) -> pd.DataFrame:
+def decomposition_at(
+    dec: dict[str, pd.DataFrame], maturity: float, observed: pd.DataFrame | None = None
+) -> pd.DataFrame:
     """Single-maturity view: observed, fitted, P-affine, TP, EH reference (decimals)."""
-    out = pd.DataFrame({
-        "fitted_Q": dec["fitted_Q"][maturity],
-        "affine_P": dec["affine_P"][maturity],
-        "term_premium": dec["term_premium"][maturity],
-        "eh_short_rate": dec["eh_short_rate"][maturity],
-    })
+    out = pd.DataFrame(
+        {
+            "fitted_Q": dec["fitted_Q"][maturity],
+            "affine_P": dec["affine_P"][maturity],
+            "term_premium": dec["term_premium"][maturity],
+            "eh_short_rate": dec["eh_short_rate"][maturity],
+        }
+    )
     if observed is not None and maturity in observed.columns:
         out.insert(0, "observed", observed[maturity])
     return out

@@ -7,6 +7,7 @@ Command-line interface.
         --acm data/ACMTermPremium.xls --kw data/THREEFYTP10.csv \
         --start 1990-01 --out results/gsw
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,10 +36,18 @@ def main(argv=None) -> None:
     r.add_argument("--no-se", action="store_true", help="skip numerical-Hessian standard errors")
     r.add_argument("--restarts", type=int, default=1)
     r.add_argument("--maxiter", type=int, default=4000)
-    r.add_argument("--common-error", action="store_true", help="one measurement error s.d. for all maturities")
+    r.add_argument(
+        "--common-error", action="store_true", help="one measurement error s.d. for all maturities"
+    )
     r.add_argument("--sim-periods", type=int, default=480)
     r.add_argument("--seed", type=int, default=42)
     r.add_argument("--no-plots", action="store_true")
+    r.add_argument("--no-bias-correction", action="store_true", help="skip bootstrap bias correction of P")
+    r.add_argument("--n-boot", type=int, default=500)
+    r.add_argument("--no-bands", action="store_true", help="skip parameter-uncertainty bands")
+    r.add_argument("--band-draws", type=int, default=200)
+    r.add_argument("--oos", action="store_true", help="run the expanding-window out-of-sample test (slow)")
+    r.add_argument("--oos-refit-every", type=int, default=12)
     r.add_argument("--out", default=None)
     a = ap.parse_args(argv)
 
@@ -47,11 +56,29 @@ def main(argv=None) -> None:
         return
 
     cfg = RunConfig(
-        source=a.source, gsw_path=a.gsw_path, acm_path=a.acm_path, kw_path=a.kw_path,
-        start=a.start, end=a.end, maturities=a.maturities, tp_maturity=a.tp_maturity,
-        fast=a.fast, compute_se=not a.no_se, n_restarts=a.restarts, maxiter=a.maxiter,
-        common_measurement_error=a.common_error, sim_periods=a.sim_periods, seed=a.seed,
-        out_dir=a.out or f"results/{a.source}", make_plots=not a.no_plots,
+        source=a.source,
+        gsw_path=a.gsw_path,
+        acm_path=a.acm_path,
+        kw_path=a.kw_path,
+        start=a.start,
+        end=a.end,
+        maturities=a.maturities,
+        tp_maturity=a.tp_maturity,
+        fast=a.fast,
+        compute_se=not a.no_se,
+        n_restarts=a.restarts,
+        maxiter=a.maxiter,
+        common_measurement_error=a.common_error,
+        sim_periods=a.sim_periods,
+        seed=a.seed,
+        out_dir=a.out or f"results/{a.source}",
+        make_plots=not a.no_plots,
+        bias_correct=not a.no_bias_correction,
+        n_boot=a.n_boot,
+        bands=not a.no_bands,
+        n_band_draws=a.band_draws,
+        oos=a.oos,
+        oos_refit_every=a.oos_refit_every,
     )
     run(cfg)
 

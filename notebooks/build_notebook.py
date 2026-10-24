@@ -5,7 +5,9 @@ Kept as a script so the notebook is reproducible and diff-friendly:
     python notebooks/build_notebook.py
     jupyter nbconvert --to notebook --execute --inplace notebooks/01_vasicek3f_walkthrough.ipynb
 """
+
 import os
+
 import nbformat as nbf
 
 nb = nbf.v4.new_notebook()

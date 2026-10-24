@@ -14,15 +14,14 @@ sampled every dt years gives the VAR(1)
 Q is computed exactly with Van Loan's (1978) block matrix-exponential method,
 which works for any K (not just diagonal or diagonalisable).
 """
-from __future__ import annotations
 
-from typing import Tuple
+from __future__ import annotations
 
 import numpy as np
 from scipy.linalg import expm, solve_discrete_lyapunov
 
 
-def van_loan(K: np.ndarray, SS: np.ndarray, dt: float) -> Tuple[np.ndarray, np.ndarray]:
+def van_loan(K: np.ndarray, SS: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
     """
     Van Loan: for dx = A x dt + B dW, expm([[-A, BB'], [0, A']] dt) = [[., G], [0, H]]
     gives Phi = H' and Q = Phi G.  Here A = -K and BB' = SS.  Returns (F, Q).
@@ -38,8 +37,9 @@ def van_loan(K: np.ndarray, SS: np.ndarray, dt: float) -> Tuple[np.ndarray, np.n
     return F, 0.5 * (Q + Q.T)
 
 
-def discretize_ou(K: np.ndarray, theta: np.ndarray, Sigma: np.ndarray,
-                  dt: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def discretize_ou(
+    K: np.ndarray, theta: np.ndarray, Sigma: np.ndarray, dt: float
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Return (c, F, Q) of the exact VAR(1) representation."""
     F, Q = van_loan(K, Sigma @ Sigma.T, dt)
     c = (np.eye(K.shape[0]) - F) @ theta
@@ -70,8 +70,7 @@ def diffusion_from_discrete_cov(K: np.ndarray, Q: np.ndarray, dt: float) -> np.n
     return np.linalg.cholesky(0.5 * (SS + SS.T))
 
 
-def unconditional_moments(theta: np.ndarray, F: np.ndarray, Q: np.ndarray
-                          ) -> Tuple[np.ndarray, np.ndarray]:
+def unconditional_moments(theta: np.ndarray, F: np.ndarray, Q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Stationary mean and covariance of the discrete VAR(1)."""
     P0 = solve_discrete_lyapunov(F, Q)
     return theta.copy(), 0.5 * (P0 + P0.T)

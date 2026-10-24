@@ -1,16 +1,16 @@
 """
 Glue between the economic model and the state-space machinery.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
 
 import numpy as np
 
 from .affine import q_loadings
 from .discretize import discretize_ou, unconditional_moments
-from .kalman import kalman_filter, kalman_loglik_collapsed, rts_smoother, KalmanResult
+from .kalman import KalmanResult, kalman_filter, kalman_loglik_collapsed, rts_smoother
 from .params import VasicekParams
 
 
@@ -29,7 +29,7 @@ class StateSpace:
 def build_state_space(params: VasicekParams, maturities: np.ndarray, dt: float) -> StateSpace:
     """Measurement eq. from Q pricing, transition eq. from exact P discretisation."""
     a, H = q_loadings(params, maturities)
-    R = np.diag(params.sigma_e ** 2)
+    R = np.diag(params.sigma_e**2)
     c, F, Q = discretize_ou(params.K_P, params.theta_P, params.Sigma, dt)
     x0, P0 = unconditional_moments(params.theta_P, F, Q)
     return StateSpace(a, H, R, c, F, Q, x0, P0)
@@ -47,14 +47,14 @@ def loglik(params: VasicekParams, y: np.ndarray, maturities: np.ndarray, dt: flo
         return -np.inf
     if not np.isnan(y).any():
         # exact and ~3-5x faster: filter on the 3-dim GLS projection of the yields
-        return kalman_loglik_collapsed(y, ss.a, ss.H, np.diag(ss.R), ss.c, ss.F, ss.Q,
-                                       ss.x0, ss.P0)
+        return kalman_loglik_collapsed(y, ss.a, ss.H, np.diag(ss.R), ss.c, ss.F, ss.Q, ss.x0, ss.P0)
     res = kalman_filter(y, ss.a, ss.H, ss.R, ss.c, ss.F, ss.Q, ss.x0, ss.P0, store=False)
     return res.loglik
 
 
-def filter_and_smooth(params: VasicekParams, y: np.ndarray, maturities: np.ndarray,
-                      dt: float) -> Dict[str, object]:
+def filter_and_smooth(
+    params: VasicekParams, y: np.ndarray, maturities: np.ndarray, dt: float
+) -> dict[str, object]:
     """Run filter + smoother at given parameters; return states and fitted yields."""
     ss = build_state_space(params, maturities, dt)
     kf: KalmanResult = kalman_filter(y, ss.a, ss.H, ss.R, ss.c, ss.F, ss.Q, ss.x0, ss.P0)

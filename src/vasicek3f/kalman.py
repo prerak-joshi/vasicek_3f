@@ -17,10 +17,10 @@ prediction-error decomposition:
 Missing observations (NaN) are handled by dropping the corresponding rows of the
 measurement equation for that date.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 from scipy.linalg import cho_factor, cho_solve
@@ -31,18 +31,27 @@ _LOG2PI = np.log(2.0 * np.pi)
 @dataclass
 class KalmanResult:
     loglik: float
-    x_pred: np.ndarray        # (T, d)   x_{t|t-1}
-    P_pred: np.ndarray        # (T, d, d)
-    x_filt: np.ndarray        # (T, d)   x_{t|t}
-    P_filt: np.ndarray        # (T, d, d)
-    innovations: np.ndarray   # (T, N)   v_t (NaN where missing)
+    x_pred: np.ndarray  # (T, d)   x_{t|t-1}
+    P_pred: np.ndarray  # (T, d, d)
+    x_filt: np.ndarray  # (T, d)   x_{t|t}
+    P_filt: np.ndarray  # (T, d, d)
+    innovations: np.ndarray  # (T, N)   v_t (NaN where missing)
     innov_var_diag: np.ndarray  # (T, N) diag(S_t)
-    loglik_t: np.ndarray      # (T,)
+    loglik_t: np.ndarray  # (T,)
 
 
-def kalman_filter(y: np.ndarray, a: np.ndarray, H: np.ndarray, R: np.ndarray,
-                  c: np.ndarray, F: np.ndarray, Q: np.ndarray,
-                  x0: np.ndarray, P0: np.ndarray, store: bool = True) -> KalmanResult:
+def kalman_filter(
+    y: np.ndarray,
+    a: np.ndarray,
+    H: np.ndarray,
+    R: np.ndarray,
+    c: np.ndarray,
+    F: np.ndarray,
+    Q: np.ndarray,
+    x0: np.ndarray,
+    P0: np.ndarray,
+    store: bool = True,
+) -> KalmanResult:
     """
     Run the Kalman filter.
 
@@ -61,9 +70,12 @@ def kalman_filter(y: np.ndarray, a: np.ndarray, H: np.ndarray, R: np.ndarray,
     full_obs = obs_mask.all(axis=1)
 
     if store:
-        x_pred = np.empty((T, d)); P_pred = np.empty((T, d, d))
-        x_filt = np.empty((T, d)); P_filt = np.empty((T, d, d))
-        innov = np.full((T, N), np.nan); svar = np.full((T, N), np.nan)
+        x_pred = np.empty((T, d))
+        P_pred = np.empty((T, d, d))
+        x_filt = np.empty((T, d))
+        P_filt = np.empty((T, d, d))
+        innov = np.full((T, N), np.nan)
+        svar = np.full((T, N), np.nan)
     ll_t = np.zeros(T)
 
     x_p, P_p = x0.astype(float).copy(), P0.astype(float).copy()
@@ -92,7 +104,7 @@ def kalman_filter(y: np.ndarray, a: np.ndarray, H: np.ndarray, R: np.ndarray,
             Sinv_v = cho_solve(cf, vt, check_finite=False)
             logdet = 2.0 * np.sum(np.log(np.diag(cf[0])))
             ll_t[t] = -0.5 * (n_t * _LOG2PI + logdet + vt @ Sinv_v)
-            Kg = cho_solve(cf, PHt.T, check_finite=False).T      # P H' S^{-1}
+            Kg = cho_solve(cf, PHt.T, check_finite=False).T  # P H' S^{-1}
             x_f = x_p + Kg @ vt
             # Joseph form keeps P_f symmetric positive semi-definite
             IKH = I_d - Kg @ Ht
@@ -115,9 +127,18 @@ def kalman_filter(y: np.ndarray, a: np.ndarray, H: np.ndarray, R: np.ndarray,
     return KalmanResult(ll, None, None, None, None, None, None, ll_t)  # type: ignore[arg-type]
 
 
-def kalman_loglik_collapsed(y: np.ndarray, a: np.ndarray, H: np.ndarray, r_diag: np.ndarray,
-                            c: np.ndarray, F: np.ndarray, Q: np.ndarray,
-                            x0: np.ndarray, P0: np.ndarray, steady_tol: float = 1e-11) -> float:
+def kalman_loglik_collapsed(
+    y: np.ndarray,
+    a: np.ndarray,
+    H: np.ndarray,
+    r_diag: np.ndarray,
+    c: np.ndarray,
+    F: np.ndarray,
+    Q: np.ndarray,
+    x0: np.ndarray,
+    P0: np.ndarray,
+    steady_tol: float = 1e-11,
+) -> float:
     """
     Fast exact log-likelihood via the collapsed filter of Jungbacker & Koopman (2015).
 
@@ -143,11 +164,12 @@ def kalman_loglik_collapsed(y: np.ndarray, a: np.ndarray, H: np.ndarray, r_diag:
         return -np.inf
     Cinv = cho_solve(cC, np.eye(d))
     z = y - a[None, :]
-    ystar = cho_solve(cC, (H * Rinv[:, None]).T @ z.T).T          # (T, d)
+    ystar = cho_solve(cC, (H * Rinv[:, None]).T @ z.T).T  # (T, d)
     u = z - ystar @ H.T
     logdetC = 2.0 * np.sum(np.log(np.diag(cC[0])))
-    ll_orth = -0.5 * (T * ((N - d) * _LOG2PI + np.sum(np.log(r_diag)) + logdetC)
-                      + np.sum(u * u * Rinv[None, :]))
+    ll_orth = -0.5 * (
+        T * ((N - d) * _LOG2PI + np.sum(np.log(r_diag)) + logdetC) + np.sum(u * u * Rinv[None, :])
+    )
 
     ll = 0.0
     x_p, P_p = x0.astype(float).copy(), P0.astype(float).copy()
@@ -160,11 +182,11 @@ def kalman_loglik_collapsed(y: np.ndarray, a: np.ndarray, H: np.ndarray, r_diag:
             return -np.inf
         v = ystar[t] - x_p
         w = np.linalg.solve(L, v)
-        Linv_P = np.linalg.solve(L, P_p)                         # L^{-1} P
+        Linv_P = np.linalg.solve(L, P_p)  # L^{-1} P
         logdet = 2.0 * np.sum(np.log(np.diag(L)))
         ll += -0.5 * (d * _LOG2PI + logdet + w @ w)
-        x_f = x_p + Linv_P.T @ w                                  # P S^{-1} v
-        P_f = P_p - Linv_P.T @ Linv_P                             # P - P S^{-1} P
+        x_f = x_p + Linv_P.T @ w  # P S^{-1} v
+        P_f = P_p - Linv_P.T @ Linv_P  # P - P S^{-1} P
         x_p = c + F @ x_f
         P_new = F @ P_f @ F.T + Q
         P_new = 0.5 * (P_new + P_new.T)
@@ -181,7 +203,7 @@ def kalman_loglik_collapsed(y: np.ndarray, a: np.ndarray, H: np.ndarray, r_diag:
         Linv = np.linalg.solve(L, np.eye(d))
         Sinv = Linv.T @ Linv
         Kg = P_p @ Sinv
-        A = F - F @ Kg                     # x_{t+1|t} = c + A x_{t|t-1} + F K y*_t
+        A = F - F @ Kg  # x_{t+1|t} = c + A x_{t|t-1} + F K y*_t
         FK = F @ Kg
         logdet = 2.0 * np.sum(np.log(np.diag(L)))
         n_rem = T - t

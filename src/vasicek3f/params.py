@@ -26,10 +26,10 @@ The implied market prices of risk (essentially affine, Duffee 2002) satisfy
     Sigma lambda_t = Sigma (lambda0 + lambda1 x_t)
                    = (K_P theta_P) + (K_Q - K_P) x_t
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+from dataclasses import asdict, dataclass, field
 
 import numpy as np
 
@@ -45,12 +45,12 @@ _LEVEL_SCALE = 100.0  # delta0 and theta_P are optimised in percent
 class VasicekParams:
     """Natural (economic) parameters of the 3-factor Vasicek model."""
 
-    kappa_Q: np.ndarray          # (3,) ordered, positive  -> K_Q = diag(kappa_Q)
-    delta0: float                # Q long-run short rate (decimal)
-    Sigma: np.ndarray            # (3,3) lower triangular, positive diagonal
-    K_P: np.ndarray              # (3,3) full P mean-reversion matrix
-    theta_P: np.ndarray          # (3,) P long-run mean of the state
-    sigma_e: np.ndarray          # (N,) measurement error std per maturity (decimal)
+    kappa_Q: np.ndarray  # (3,) ordered, positive  -> K_Q = diag(kappa_Q)
+    delta0: float  # Q long-run short rate (decimal)
+    Sigma: np.ndarray  # (3,3) lower triangular, positive diagonal
+    K_P: np.ndarray  # (3,3) full P mean-reversion matrix
+    theta_P: np.ndarray  # (3,) P long-run mean of the state
+    sigma_e: np.ndarray  # (N,) measurement error std per maturity (decimal)
 
     # ------------------------------------------------------------------ helpers
     def __post_init__(self) -> None:
@@ -77,20 +77,20 @@ class VasicekParams:
         """P dynamics are stationary iff every eigenvalue of K_P has positive real part."""
         return bool(np.all(np.real(np.linalg.eigvals(self.K_P)) > 1e-6))
 
-    def market_price_of_risk(self) -> Dict[str, np.ndarray]:
+    def market_price_of_risk(self) -> dict[str, np.ndarray]:
         """lambda0, lambda1 such that lambda_t = lambda0 + lambda1 x_t."""
         lam0 = np.linalg.solve(self.Sigma, self.K_P @ self.theta_P)
         lam1 = np.linalg.solve(self.Sigma, self.K_Q - self.K_P)
         return {"lambda0": lam0, "lambda1": lam1}
 
-    def short_rate_long_run(self) -> Dict[str, float]:
+    def short_rate_long_run(self) -> dict[str, float]:
         """Long-run mean of the short rate under each measure."""
         return {
             "Q": self.delta0,  # theta_Q = 0
             "P": self.delta0 + float(self.delta1 @ self.theta_P),
         }
 
-    def factor_half_lives(self) -> Dict[str, np.ndarray]:
+    def factor_half_lives(self) -> dict[str, np.ndarray]:
         """Half-lives (years) implied by the eigenvalues of K_Q and K_P."""
         eig_p = np.linalg.eigvals(self.K_P)
         return {
@@ -98,13 +98,17 @@ class VasicekParams:
             "P": np.log(2.0) / np.real(eig_p),
         }
 
-    def copy(self) -> "VasicekParams":
+    def copy(self) -> VasicekParams:
         return VasicekParams(
-            kappa_Q=self.kappa_Q.copy(), delta0=self.delta0, Sigma=self.Sigma.copy(),
-            K_P=self.K_P.copy(), theta_P=self.theta_P.copy(), sigma_e=self.sigma_e.copy(),
+            kappa_Q=self.kappa_Q.copy(),
+            delta0=self.delta0,
+            Sigma=self.Sigma.copy(),
+            K_P=self.K_P.copy(),
+            theta_P=self.theta_P.copy(),
+            sigma_e=self.sigma_e.copy(),
         )
 
-    def to_dict(self) -> Dict[str, object]:
+    def to_dict(self) -> dict[str, object]:
         d = {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in asdict(self).items()}
         mpr = self.market_price_of_risk()
         d["lambda0"] = mpr["lambda0"].tolist()
@@ -116,7 +120,7 @@ class VasicekParams:
         return d
 
     @classmethod
-    def from_dict(cls, d: Dict[str, object]) -> "VasicekParams":
+    def from_dict(cls, d: dict[str, object]) -> VasicekParams:
         keys = ("kappa_Q", "delta0", "Sigma", "K_P", "theta_P", "sigma_e")
         return cls(**{k: d[k] for k in keys})
 
@@ -142,18 +146,18 @@ class ParamTransform:
 
     n_maturities: int
     common_measurement_error: bool = False
-    names: List[str] = field(init=False)
+    names: list[str] = field(init=False)
 
     def __post_init__(self) -> None:
         names = ["log_dk1", "log_dk2", "log_dk3", "delta0_pct"]
         for i, j in zip(*_TRIL):
-            names.append(f"Sigma_{i+1}{j+1}" + ("_log" if i == j else ""))
+            names.append(f"Sigma_{i + 1}{j + 1}" + ("_log" if i == j else ""))
         for i in range(N_FACTORS):
             for j in range(N_FACTORS):
-                names.append(f"KP_{i+1}{j+1}")
-        names += [f"thetaP_{i+1}_pct" for i in range(N_FACTORS)]
+                names.append(f"KP_{i + 1}{j + 1}")
+        names += [f"thetaP_{i + 1}_pct" for i in range(N_FACTORS)]
         n_err = 1 if self.common_measurement_error else self.n_maturities
-        names += [f"log_sigma_e_bp_{k+1}" for k in range(n_err)]
+        names += [f"log_sigma_e_bp_{k + 1}" for k in range(n_err)]
         self.names = names
 
     @property
@@ -204,16 +208,23 @@ class ParamTransform:
     def natural_vector(self, p: VasicekParams) -> np.ndarray:
         """Flat vector of natural parameters (same ordering as `natural_names`)."""
         se = p.sigma_e[:1] if self.common_measurement_error else p.sigma_e
-        return np.concatenate([
-            p.kappa_Q, [p.delta0], p.Sigma[_TRIL], p.K_P.reshape(-1), p.theta_P, se,
-        ])
+        return np.concatenate(
+            [
+                p.kappa_Q,
+                [p.delta0],
+                p.Sigma[_TRIL],
+                p.K_P.reshape(-1),
+                p.theta_P,
+                se,
+            ]
+        )
 
     @property
-    def natural_names(self) -> List[str]:
-        names = [f"kappaQ_{i+1}" for i in range(N_FACTORS)] + ["delta0"]
-        names += [f"Sigma_{i+1}{j+1}" for i, j in zip(*_TRIL)]
-        names += [f"KP_{i+1}{j+1}" for i in range(N_FACTORS) for j in range(N_FACTORS)]
-        names += [f"thetaP_{i+1}" for i in range(N_FACTORS)]
+    def natural_names(self) -> list[str]:
+        names = [f"kappaQ_{i + 1}" for i in range(N_FACTORS)] + ["delta0"]
+        names += [f"Sigma_{i + 1}{j + 1}" for i, j in zip(*_TRIL)]
+        names += [f"KP_{i + 1}{j + 1}" for i in range(N_FACTORS) for j in range(N_FACTORS)]
+        names += [f"thetaP_{i + 1}" for i in range(N_FACTORS)]
         n_err = 1 if self.common_measurement_error else self.n_maturities
-        names += [f"sigma_e_{k+1}" for k in range(n_err)]
+        names += [f"sigma_e_{k + 1}" for k in range(n_err)]
         return names

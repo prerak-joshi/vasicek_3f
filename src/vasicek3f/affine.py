@@ -21,15 +21,14 @@ This module provides
   * a generic ODE solver used for the P-measure affine benchmark and for testing,
   * the strict Expectations-Hypothesis average expected short rate (reference only).
 """
-from __future__ import annotations
 
-from typing import Tuple
+from __future__ import annotations
 
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.linalg import expm
 
-from .params import VasicekParams, N_FACTORS
+from .params import N_FACTORS, VasicekParams
 
 
 def _phi(k: np.ndarray, tau: float) -> np.ndarray:
@@ -37,7 +36,7 @@ def _phi(k: np.ndarray, tau: float) -> np.ndarray:
     return -np.expm1(-k * tau) / k
 
 
-def q_loadings(params: VasicekParams, maturities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def q_loadings(params: VasicekParams, maturities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Closed-form yield loadings under Q for K_Q = diag(kappa), theta_Q = 0, delta1 = iota.
 
@@ -76,7 +75,7 @@ def ode_loadings(
     delta0: float,
     delta1: np.ndarray,
     maturities: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Generic yield loadings for drift  k0 - K x  by numerically integrating the ODEs.
 
@@ -94,8 +93,15 @@ def ode_loadings(
         dA = -delta0 + k0 @ B + 0.5 * B @ SigmaSigmaT @ B
         return np.concatenate([[dA], dB])
 
-    sol = solve_ivp(rhs, (0.0, float(t_sorted[-1])), np.zeros(d + 1),
-                    t_eval=t_sorted, method="DOP853", rtol=1e-11, atol=1e-14)
+    sol = solve_ivp(
+        rhs,
+        (0.0, float(t_sorted[-1])),
+        np.zeros(d + 1),
+        t_eval=t_sorted,
+        method="DOP853",
+        rtol=1e-11,
+        atol=1e-14,
+    )
     if not sol.success:  # pragma: no cover
         raise RuntimeError(f"ODE integration failed: {sol.message}")
     A_sorted = sol.y[0]
@@ -109,13 +115,14 @@ def ode_loadings(
     return a, b
 
 
-def q_loadings_ode(params: VasicekParams, maturities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def q_loadings_ode(params: VasicekParams, maturities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Q loadings via the generic ODE solver (for testing the closed form)."""
-    return ode_loadings(params.K_Q, np.zeros(N_FACTORS), params.SigmaSigmaT,
-                        params.delta0, params.delta1, maturities)
+    return ode_loadings(
+        params.K_Q, np.zeros(N_FACTORS), params.SigmaSigmaT, params.delta0, params.delta1, maturities
+    )
 
 
-def p_loadings(params: VasicekParams, maturities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def p_loadings(params: VasicekParams, maturities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Physical-measure affine yield loadings: the yield the model would produce if
     bonds were priced with the P dynamics, i.e. with zero market price of risk.
@@ -126,11 +133,10 @@ def p_loadings(params: VasicekParams, maturities: np.ndarray) -> Tuple[np.ndarra
     average expected short rate under P minus a P-measure convexity term.
     """
     k0 = params.K_P @ params.theta_P
-    return ode_loadings(params.K_P, k0, params.SigmaSigmaT,
-                        params.delta0, params.delta1, maturities)
+    return ode_loadings(params.K_P, k0, params.SigmaSigmaT, params.delta0, params.delta1, maturities)
 
 
-def eh_loadings(params: VasicekParams, maturities: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def eh_loadings(params: VasicekParams, maturities: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Strict Expectations-Hypothesis component (reference series only):
 

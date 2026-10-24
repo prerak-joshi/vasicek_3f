@@ -2,17 +2,18 @@
 Unit tests for pricing, discretisation, filtering and the decomposition identities.
 Run:  pytest -q
 """
+
 import numpy as np
 import pytest
 from scipy.integrate import quad_vec
 from scipy.linalg import expm
 from scipy.stats import multivariate_normal
 
-from vasicek3f.affine import q_loadings, q_loadings_ode, p_loadings, eh_loadings
-from vasicek3f.discretize import discretize_ou, diffusion_from_discrete_cov
+from vasicek3f.affine import eh_loadings, p_loadings, q_loadings, q_loadings_ode
+from vasicek3f.discretize import diffusion_from_discrete_cov, discretize_ou
 from vasicek3f.kalman import kalman_filter, kalman_loglik_collapsed
 from vasicek3f.model import build_state_space, loglik
-from vasicek3f.params import ParamTransform, VasicekParams
+from vasicek3f.params import ParamTransform
 from vasicek3f.simulate import default_true_params, simulate_panel
 
 TAU = np.arange(1.0, 11.0)
@@ -47,7 +48,8 @@ def test_short_end_limit(p):
 def test_convexity_lowers_long_yields(p):
     a, _ = q_loadings(p, TAU)
     assert np.all(np.diff(a) < 0)
-    zero_vol = p.copy(); zero_vol.Sigma = np.zeros((3, 3))
+    zero_vol = p.copy()
+    zero_vol.Sigma = np.zeros((3, 3))
     a0, _ = q_loadings(zero_vol, TAU)
     assert np.allclose(a0, p.delta0)
 
@@ -64,7 +66,8 @@ def test_term_premium_zero_when_P_equals_Q(p):
 
 def test_p_affine_equals_eh_minus_convexity(p):
     """With zero volatility there is no convexity, so the P-affine yield equals the EH rate."""
-    q = p.copy(); q.Sigma = np.zeros((3, 3))
+    q = p.copy()
+    q.Sigma = np.zeros((3, 3))
     aP, bP = p_loadings(q, TAU)
     aE, bE = eh_loadings(q, TAU)
     assert np.allclose(aP, aE, atol=1e-10) and np.allclose(bP, bE, atol=1e-9)
@@ -96,9 +99,12 @@ def test_kalman_matches_brute_force_gaussian(p, y):
     Px = np.zeros((T * d, T * d))
     for i in range(T):
         for j in range(T):
-            blk = (np.linalg.matrix_power(ss.F, i - j) @ ss.P0 if i >= j
-                   else ss.P0 @ np.linalg.matrix_power(ss.F, j - i).T)
-            Px[i*d:(i+1)*d, j*d:(j+1)*d] = blk
+            blk = (
+                np.linalg.matrix_power(ss.F, i - j) @ ss.P0
+                if i >= j
+                else ss.P0 @ np.linalg.matrix_power(ss.F, j - i).T
+            )
+            Px[i * d : (i + 1) * d, j * d : (j + 1) * d] = blk
     Hb = np.kron(np.eye(T), ss.H)
     cov = Hb @ Px @ Hb.T + np.kron(np.eye(T), ss.R)
     mu = np.tile(ss.a + ss.H @ ss.x0, T)
@@ -123,7 +129,8 @@ def test_missing_values_handled(p, y):
 
 
 def test_nonstationary_K_P_rejected(p, y):
-    q = p.copy(); q.K_P = -np.eye(3) * 0.1
+    q = p.copy()
+    q.K_P = -np.eye(3) * 0.1
     assert loglik(q, y, TAU, DT) == -np.inf
 
 

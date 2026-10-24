@@ -12,19 +12,19 @@ The download helper uses only the standard library. Some sites reject requests
 without a browser User-Agent; one is set. If a download fails, save the file
 manually from the URL and pass the local path instead.
 """
+
 from __future__ import annotations
 
 import io
 import os
 import urllib.request
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Optional
 
-import numpy as np
 import pandas as pd
 
 GSW_URL = "https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv"
-ACM_URL = ("https://www.newyorkfed.org/medialibrary/media/research/"
-           "data_indicators/ACMTermPremium.xls")
+ACM_URL = "https://www.newyorkfed.org/medialibrary/media/research/data_indicators/ACMTermPremium.xls"
 KW_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=THREEFYTP{n}"
 
 _UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) vasicek3f research script"}
@@ -42,10 +42,13 @@ def download(url: str, dest: str, timeout: int = 60) -> str:
 def download_all(dest_dir: str = "data", kw_maturities: Iterable[int] = (10,)) -> dict:
     """Fetch GSW, ACM and KW files into dest_dir. Failures are reported, not raised."""
     out = {}
-    jobs = [("gsw", GSW_URL, os.path.join(dest_dir, "feds200628.csv")),
-            ("acm", ACM_URL, os.path.join(dest_dir, "ACMTermPremium.xls"))]
-    jobs += [(f"kw{n}", KW_URL.format(n=n), os.path.join(dest_dir, f"THREEFYTP{n}.csv"))
-             for n in kw_maturities]
+    jobs = [
+        ("gsw", GSW_URL, os.path.join(dest_dir, "feds200628.csv")),
+        ("acm", ACM_URL, os.path.join(dest_dir, "ACMTermPremium.xls")),
+    ]
+    jobs += [
+        (f"kw{n}", KW_URL.format(n=n), os.path.join(dest_dir, f"THREEFYTP{n}.csv")) for n in kw_maturities
+    ]
     for name, url, path in jobs:
         try:
             out[name] = download(url, path)
@@ -64,15 +67,19 @@ def _month_end(df: pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
 # ---------------------------------------------------------------------------
 # GSW
 # ---------------------------------------------------------------------------
-def load_gsw(path: str, maturities: Sequence[float] = tuple(range(1, 11)),
-             start: Optional[str] = None, end: Optional[str] = None) -> pd.DataFrame:
+def load_gsw(
+    path: str,
+    maturities: Sequence[float] = tuple(range(1, 11)),
+    start: Optional[str] = None,
+    end: Optional[str] = None,
+) -> pd.DataFrame:
     """
     Load GSW zero-coupon yields at integer-year maturities, month-end, decimals.
 
     The Fed CSV begins with several lines of notes; the header row is the first
     line whose first field is 'Date'.
     """
-    with open(path, "r", encoding="utf-8", errors="replace") as f:
+    with open(path, encoding="utf-8", errors="replace") as f:
         lines = f.readlines()
     hdr = next(i for i, ln in enumerate(lines) if ln.strip().lower().startswith("date"))
     df = pd.read_csv(io.StringIO("".join(lines[hdr:])), na_values=["NA", "", "."])
@@ -90,7 +97,7 @@ def load_gsw(path: str, maturities: Sequence[float] = tuple(range(1, 11)),
     out = _month_end(pd.DataFrame(cols))
     out.columns.name = "maturity"
     if start:
-        out = out.loc[pd.Timestamp(start):]
+        out = out.loc[pd.Timestamp(start) :]
     if end:
         out = out.loc[: pd.Timestamp(end) + pd.offsets.MonthEnd(0)]
     return out.dropna(how="all")
@@ -119,9 +126,14 @@ def load_acm(path: str, maturity: int = 10) -> pd.Series:
         frame = pd.read_csv(path)
         frame.columns = [str(c).strip().upper() for c in frame.columns]
     date_col = next(c for c in frame.columns if "DATE" in c)
-    s = pd.Series(pd.to_numeric(frame[col], errors="coerce").values,
-                  index=pd.to_datetime(frame[date_col], format="mixed", dayfirst=False),
-                  name=f"ACM_{maturity}y") / 100.0
+    s = (
+        pd.Series(
+            pd.to_numeric(frame[col], errors="coerce").values,
+            index=pd.to_datetime(frame[date_col], format="mixed", dayfirst=False),
+            name=f"ACM_{maturity}y",
+        )
+        / 100.0
+    )
     return _month_end(s.dropna())
 
 
@@ -134,6 +146,12 @@ def load_kw(path: str) -> pd.Series:
     df.columns = [c.strip() for c in df.columns]
     date_col = next(c for c in df.columns if c.lower() in ("observation_date", "date"))
     val_col = next(c for c in df.columns if c != date_col)
-    s = pd.Series(pd.to_numeric(df[val_col], errors="coerce").values,
-                  index=pd.to_datetime(df[date_col]), name=f"KW_{val_col}") / 100.0
+    s = (
+        pd.Series(
+            pd.to_numeric(df[val_col], errors="coerce").values,
+            index=pd.to_datetime(df[date_col]),
+            name=f"KW_{val_col}",
+        )
+        / 100.0
+    )
     return _month_end(s.dropna())

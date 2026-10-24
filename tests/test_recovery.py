@@ -7,12 +7,13 @@ parameters well, and tracks the true term premium closely in its time variation.
 The P-measure parameters are deliberately NOT tested tightly - they are weakly
 identified in samples of realistic length, which is a central lesson of the project.
 """
+
 import numpy as np
 import pytest
 
-from vasicek3f.estimation import estimate
-from vasicek3f.model import loglik, filter_and_smooth
 from vasicek3f.decomposition import term_premium_decomposition
+from vasicek3f.estimation import estimate
+from vasicek3f.model import filter_and_smooth, loglik
 from vasicek3f.simulate import default_true_params, simulate_panel
 
 TAU = np.arange(1.0, 11.0)
@@ -23,8 +24,7 @@ DT = 1.0 / 12.0
 def fitted():
     true = default_true_params(TAU.size)
     sim = simulate_panel(true, TAU, 480, DT, seed=7)
-    res = estimate(sim["yields"].values, TAU, DT, compute_se=False, polish=False,
-                   ftol=1e-10, verbose=False)
+    res = estimate(sim["yields"].values, TAU, DT, compute_se=False, polish=False, ftol=1e-10, verbose=False)
     return true, sim, res
 
 
